@@ -7,6 +7,7 @@ import warnings
 
 def load_zip_file(url:str) -> requests.models.Response:
     """
+    the zip files for the historical AIS can be found here: http://web.ais.dk/aisdata/
     """
     response = requests.get(url)
     response.raise_for_status() 
