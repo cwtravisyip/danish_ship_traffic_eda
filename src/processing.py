@@ -52,3 +52,100 @@ def return_id_by_ship_type(df_chunks: pd.io.parsers.readers.TextFileReader, id: 
                 res_list[ship_type] = res_list[ship_type].union(mmsi)
     
     return res_list
+
+
+def return_ship_attr(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -> Dict:
+    """
+    Given the id of a ship, return the time-invariant attribute in the dataframe
+    :param df: Data frame to subset on
+    :param id_type: The ID type between MMSI or IMO used to identify the vessel
+    :param id: The ID
+    :return:
+    """
+    # columns required
+    cols: List[str] = ['# Timestamp','Type of mobile','MMSI','IMO','Data source type',
+                       'Callsign','Name','Ship type','Width','Length','Type of position fixing device','A','B','C','D']
+    # attribute required
+    attr: List[str] = ['Type of mobile', 'MMSI', 'IMO', 'Callsign', 'Name', 'Ship type', 'Width', 'Length',
+                       'Type of position fixing device', 'A', 'B','C', 'D']
+
+    # filter the dataframe in both dimension
+    df_ship = df.loc[df[id_type] ==  id,attr].drop_duplicates()
+
+    if df_ship.shape[0] == 0:
+        raise KeyError(f'No records found for the ship with {id_type}: {id}')
+    elif df_ship.shape[0] > 1:
+        raise Warning(f'More than 1 unique record found for the ship with {id_type}: {id}')
+
+        df_ship = df.loc[df[id_type] ==  id,cols]\
+                    .sort_values('# Timestamp')\
+                    .drop_duplicates(keep = 'First')
+    else:
+        # only one unique record on the expectedly time-invariant attribute
+        pass
+    return df_ship.reset_index(drop=True).to_dict(orient ='index')
+
+
+def return_ship_attr_time_variant(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -> Dict:
+    """
+    Given the id of a ship, return the attributes that are less likely to change over time
+    :param df: Data frame to subset on
+    :param id_type: The ID type between MMSI or IMO used to identify the vessel
+    :param id: The ID
+    :return:
+    """
+    # columns required
+    cols: List[str] = ['# Timestamp','Type of mobile','MMSI','IMO','Data source type',
+                       'Navigational status','Heading','Destination','ETA','Cargo type']
+    # attribute required
+    attr: List[str] = ['MMSI', 'IMO', 'Navigational status','Heading','Destination','ETA','Cargo type']
+
+    # subset the
+
+    # filter the dataframe in both dimension
+    df_ship = df.loc[df[id_type] ==  id,attr].drop_duplicates()
+
+    if df_ship.shape[0] == 0:
+        raise KeyError(f'No records found for the ship with {id_type}: {id}')
+    elif df_ship.shape[0] > 1:
+
+        df_ship = df.loc[df[id_type] ==  id,cols]\
+                    .sort_values('# Timestamp')\
+                    .drop_duplicates(keep = 'first')
+    else:
+        # only one unique record on the expectedly time-invariant attribute
+        pass
+
+    return df_ship.reset_index(drop=True).to_dict(orient ='index')
+
+
+def return_ship_geo_attr(df: pd.DataFrame, id_type: Literal['MMSI', 'IMO'], id: int) -> gpd.GeoDataFrame:
+    """
+    Given the id of a ship, return the attributes that are usually time-variant.
+    :param df: Data frame to subset on
+    :param id_type: The ID type between MMSI or IMO used to identify the vessel
+    :param id: The ID
+    :return: gpd.GeoDataFrame
+    """
+    # columns required
+    cols: List[str] = ['# Timestamp', 'Latitude', 'Longitude', 'ROT', 'SOG', 'COG', 'Draught', 'Data source type']
+
+    # filter the dataframe in both dimension
+    df_ship = df.loc[df[id_type] == id, cols].drop_duplicates()\
+                .sort_values('# Timestamp')\
+                .reset_index(drop = True)
+
+    if df_ship.shape[0] == 0:
+        raise KeyError(f'No records found for the ship with {id_type}: {id}')
+
+    else:
+
+        gdf = gpd.GeoDataFrame(df_ship, geometry = gpd.points_from_xy(
+                                    x = df_ship['Longitude'],
+                                    y = df_ship['Latitude']))\
+                .drop(columns = ['Longitude','Latitude'])
+
+    return gdf
+
+if __name__ == '__main__':
+    pass
