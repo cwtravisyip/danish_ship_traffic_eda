@@ -1,8 +1,10 @@
-import pandas as pd 
+import os
+
+import pandas as pd
 import geopandas as gpd
 import numpy as np
-from typing import List, Dict, Union, Set, Literal
-
+from typing import List, Dict, Union, Set, Literal, Tuple
+import warnings
 
 def return_id_by_ship_type(df_chunks: pd.io.parsers.readers.TextFileReader, id: Literal['MMSI','IMO']) -> Dict[str, Set]:
     """
@@ -54,7 +56,7 @@ def return_id_by_ship_type(df_chunks: pd.io.parsers.readers.TextFileReader, id: 
     return res_list
 
 
-def return_ship_attr(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -> Dict:
+def return_ship_attr(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -> pd.DataFrame:
     """
     Given the id of a ship, return the time-invariant attribute in the dataframe
     :param df: Data frame to subset on
@@ -83,10 +85,10 @@ def return_ship_attr(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -
     else:
         # only one unique record on the expectedly time-invariant attribute
         pass
-    return df_ship.reset_index(drop=True).to_dict(orient ='index')
+    return df_ship.reset_index(drop=True)
 
 
-def return_ship_attr_time_variant(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -> Dict:
+def return_ship_attr_time_variant(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -> pd.DataFrame:
     """
     Given the id of a ship, return the attributes that are less likely to change over time
     :param df: Data frame to subset on
@@ -116,7 +118,7 @@ def return_ship_attr_time_variant(df: pd.DataFrame, id_type: Literal['MMSI','IMO
         # only one unique record on the expectedly time-invariant attribute
         pass
 
-    return df_ship.reset_index(drop=True).to_dict(orient ='index')
+    return df_ship.reset_index(drop=True)
 
 
 def return_ship_geo_attr(df: pd.DataFrame, id_type: Literal['MMSI', 'IMO'], id: int) -> gpd.GeoDataFrame:
@@ -147,5 +149,34 @@ def return_ship_geo_attr(df: pd.DataFrame, id_type: Literal['MMSI', 'IMO'], id: 
 
     return gdf
 
+def get_ship_route(path:str, id_type: Literal['MMSI', 'IMO'], id: int, chunk_size:int = 5000) \
+        -> Tuple[Union[Dict, gpd.GeoDataFrame]]:
+
+    df_iter = pd.read_csv(path, chunksize = chunk_size)
+
+    # instantiate empty result
+    dfs_attr:List[pd.DataFrame] = []
+    dfs_attr_tv:List[pd.DataFrame] = []
+    gdfs: List[gpd.GeoDataFrame] = []
+
+    for df in df_iter:
+        try:
+            dfs_attr.append(return_ship_attr(df=df,id_type=id_type,id=id))
+            dfs_attr_tv.append(return_ship_attr_time_variant(df=df, id_type=id_type, id=id))
+            gdfs.append(return_ship_geo_attr(df=df, id_type=id_type, id=id))
+        except KeyError:
+            continue
+        except Exception:
+            raise
+
+    del df_iter
+    del df
+
+    df_attr: pd.DataFrame = pd.concat(dfs_attr).drop_duplicates().reset_index(drop=True)
+    df_attr_tv: pd.DataFrame = pd.concat(dfs_attr_tv).drop_duplicates().reset_index(drop=True)
+
+    gdf:gpd.GeoDataFrame = pd.concat(gdfs).reset_index(drop= True)
+
+    return df_attr, df_attr_tv, gdf
 if __name__ == '__main__':
     pass
