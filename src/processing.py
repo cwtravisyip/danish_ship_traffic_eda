@@ -75,11 +75,11 @@ def return_ship_attr(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -
     if df_ship.shape[0] == 0:
         raise KeyError(f'No records found for the ship with {id_type}: {id}')
     elif df_ship.shape[0] > 1:
-        raise Warning(f'More than 1 unique record found for the ship with {id_type}: {id}')
+        warnings.warn(f'More than 1 unique record found for the ship with {id_type}: {id}')
 
         df_ship = df.loc[df[id_type] ==  id,cols]\
                     .sort_values('# Timestamp')\
-                    .drop_duplicates(keep = 'First')
+                    .drop_duplicates(keep = 'first')
     else:
         # only one unique record on the expectedly time-invariant attribute
         pass
