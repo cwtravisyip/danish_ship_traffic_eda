@@ -89,6 +89,52 @@ def return_ship_attr(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -
     return df_ship.reset_index(drop=True)
 
 
+def return_ship_type_attr(df_path: str,ship_type: str, chunksize: int = None) -> pd.DataFrame:
+    """
+    Given the id of a ship, return the time-invariant attribute in the dataframe
+    :param df: Data frame to subset on
+    :param id_type: The ID type between MMSI or IMO used to identify the vessel
+    :param id: The ID
+    :return:
+    """
+
+    # attribute required
+    attr: List[str] = ['Type of mobile', 'MMSI', 'IMO', 'Callsign', 'Name', 'Ship type', 'Width', 'Length',
+                       'Type of position fixing device', 'A', 'B','C', 'D']
+
+    # instantiate empty list to store chunks of df
+    list_df = []
+
+    if chunksize:
+        df_iter = pd.read_csv(df_path, chunksize = chunksize)
+    else:
+        df_iter = [pd.read_csv(df_path)]
+
+    for iter, df in enumerate(df_iter): 
+        # filter the dataframe in both dimension
+        df_ship = df.loc[df['Ship type'] ==  ship_type,attr].drop_duplicates()
+
+        if df_ship.shape[0] == 0:
+            warnings.warn(f'No vessel of type {ship_type} in {iter}-th chunk of the df.')
+        elif len(df_ship['MMSI'].unique()) != df_ship.shape[0]:
+            warnings.warn(f'One or more vessel has its attribute changed')
+        else:
+            # only one unique record on the expectedly time-invariant attribute
+            pass
+
+        list_df.append(df_ship)
+
+    df_concat = pd.concat(list_df).drop_duplicates().reset_index(drop=True)
+
+    if len(df_concat['MMSI'].unique()) != df_concat.shape[0]:
+        warnings.warn(f'One or more vesselhas its attribute changed')
+    else:
+        # only one unique record on the expectedly time-invariant attribute
+        pass
+
+    return df_concat
+
+
 def return_ship_attr_time_variant(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -> pd.DataFrame:
     """
     Given the id of a ship, return the attributes that are less likely to change over time
