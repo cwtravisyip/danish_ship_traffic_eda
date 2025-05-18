@@ -5,6 +5,7 @@ import geopandas as gpd
 import numpy as np
 from typing import List, Dict, Union, Set, Literal, Tuple
 import warnings
+from shapely.geometry import LineString
 
 def return_id_by_ship_type(df_chunks: pd.io.parsers.readers.TextFileReader, id: Literal['MMSI','IMO']) -> Dict[str, Set]:
     """
@@ -178,5 +179,23 @@ def get_ship_route(path:str, id_type: Literal['MMSI', 'IMO'], id: int, chunk_siz
     gdf:gpd.GeoDataFrame = pd.concat(gdfs).reset_index(drop= True)
 
     return df_attr, df_attr_tv, gdf
+
+def return_line_from_points(gdf:gpd.GeoDataFrame)->LineString:
+    gdf["# Timestamp"] = gpd.pd.to_datetime(gdf["# Timestamp"])
+
+    # Sort by timestamp
+    gdf_sorted = gdf.sort_values("# Timestamp")
+
+    # Create LineString from ordered points
+    try:
+        line = LineString(gdf_sorted.geometry.tolist())
+
+    except:
+        raise
+    # Convert to a new GeoDataFrame
+
+    return line
+
+
 if __name__ == '__main__':
     pass
