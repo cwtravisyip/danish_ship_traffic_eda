@@ -192,7 +192,8 @@ def return_ship_geo_attr(df: pd.DataFrame, id_type: Literal['MMSI', 'IMO'], id: 
         gdf = gpd.GeoDataFrame(df_ship, geometry = gpd.points_from_xy(
                                     x = df_ship['Longitude'],
                                     y = df_ship['Latitude']))\
-                .drop(columns = ['Longitude','Latitude'])
+                .drop(columns = ['Longitude','Latitude'])\
+                .set_crs(epsg=4326)
 
     return gdf
 
@@ -223,6 +224,9 @@ def get_ship_route(path:str, id_type: Literal['MMSI', 'IMO'], id: int, chunk_siz
     df_attr_tv: pd.DataFrame = pd.concat(dfs_attr_tv).drop_duplicates().reset_index(drop=True)
 
     gdf:gpd.GeoDataFrame = pd.concat(gdfs).reset_index(drop= True)
+
+    if gdf.crs is None:
+        warnings.warn('GeoDataFrame with no crs assigned.')
 
     return df_attr, df_attr_tv, gdf
 
