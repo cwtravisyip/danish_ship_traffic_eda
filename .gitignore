@@ -1,1 +1,8 @@
 .venv
+.idea
+
+# scratch files
+scratch[0-9]*.ipynb
+
+# data file
+data/boundary/
