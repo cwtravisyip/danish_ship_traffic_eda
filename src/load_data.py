@@ -5,14 +5,25 @@ import pandas as pd
 from typing import Generator
 import warnings
 
-def load_zip_file(url:str) -> requests.models.Response:
+
+def load_zip_file(url:str,path: str = 'unzipped_files') -> None:
     """
     the zip files for the historical AIS can be found here: http://web.ais.dk/aisdata/
     """
     response = requests.get(url)
     response.raise_for_status() 
 
-    return response
+    with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
+    # List the contents of the ZIP file
+        print("Contents of the ZIP file:")
+        for file_name in zip_file.namelist():
+            print(file_name)
+            
+        # Optionally extract files to a folder
+        zip_file.extractall(path)
+        print(f"Files extracted to {path} folder.")
+
+    return None
 
 def find_csv(res: requests.models.Response) -> list:
     """
@@ -48,6 +59,29 @@ def load_csv_in_zip(filename:list,res: requests.models.Response, chunksize: int 
 
             # Load the first CSV file directly into a DataFrame
         return pd.read_csv(zip_file.open(filename[0]), chunksize = chunksize)
+    
+class url_zipfile_loader:
+    def __init__(self, url):
+        self.url = url
+
+    def __enter__(self):
+        response = requests.get(self.url)
+        response.raise_for_status() 
+            # Open the ZIP file in memory
+        # with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
+        #     # Find the CSV file within the ZIP
+        #     csv_files = [f for f in zip_file.namelist() if f.endswith('.csv')]
+            
+        #     if not csv_files:
+        #         raise ValueError("No CSV file found in the ZIP archive.")
+            
+        #     # Load the first CSV file directly into a DataFrame
+        #     self.csv_fie = 
+        #     return zip_file.open(csv_files[0])
+
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print("exit")
 
 
 if __name__ == '__main__':
