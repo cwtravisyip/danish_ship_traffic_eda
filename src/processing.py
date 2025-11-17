@@ -1,3 +1,5 @@
+"""Processing the data files for analysis"""
+
 import os
 
 import pandas as pd
@@ -7,7 +9,10 @@ from typing import List, Dict, Union, Set, Literal, Tuple
 import warnings
 from shapely.geometry import LineString
 
-def return_id_by_ship_type(df_chunks: pd.io.parsers.readers.TextFileReader, id: Literal['MMSI','IMO']) -> Dict[str, Set]:
+
+def return_id_by_ship_type(
+    df_chunks: pd.io.parsers.readers.TextFileReader, id: Literal["MMSI", "IMO"]
+) -> Dict[str, Set]:
     """
     Return a unique list of IMO or MMSI by the ship type
     :params df_chunks: an iterable object each returning a pandas dataframe, instantiated by
@@ -17,20 +22,20 @@ def return_id_by_ship_type(df_chunks: pd.io.parsers.readers.TextFileReader, id: 
     # instantiate empty dictionary
     res_list = {}
 
-    def return_unknown_IMO(df: pd.DataFrame)-> None:
+    def return_unknown_IMO(df: pd.DataFrame) -> None:
         """verbose behaviour when returning list of IMO"""
         # return the number of unknown IMO
         try:
-            pct_unknown: np.float64 = df['IMO'].value_counts(normalize=True)['Unknown']
+            pct_unknown: np.float64 = df["IMO"].value_counts(normalize=True)["Unknown"]
         except KeyError:
             pass
         except Exception:
             raise
-    
-        try: 
-            n_unique_mmsi: float = df[df['IMO']=='Unknown']['MMSI'].unique().shape[0]
+
+        try:
+            n_unique_mmsi: float = df[df["IMO"] == "Unknown"]["MMSI"].unique().shape[0]
         except Exception:
-            raise 
+            raise
 
         print(f"{pct_unknown:.0%} records have unknown IMO, representing {n_unique_mmsi} unique MMSI.")
 
@@ -38,15 +43,14 @@ def return_id_by_ship_type(df_chunks: pd.io.parsers.readers.TextFileReader, id: 
     for df in df_chunks:
 
         # drop records of "unknown" from the result list of IDs
-        if id == 'IMO':
+        if id == "IMO":
             return_unknown_IMO(df)
-            df = df[df[id] != 'Unknown']
+            df = df[df[id] != "Unknown"]
 
         else:
             pass
 
-
-        aggregate = df.groupby(['Ship type'])[id].agg(set)
+        aggregate = df.groupby(["Ship type"])[id].agg(set)
 
         for ship_type, mmsi in aggregate.items():
             if ship_type not in res_list.keys():
@@ -54,10 +58,11 @@ def return_id_by_ship_type(df_chunks: pd.io.parsers.readers.TextFileReader, id: 
             else:
                 # update the set if the ship type already exist
                 res_list[ship_type] = res_list[ship_type].union(mmsi)
-    
+
     return res_list
 
-def return_ship_attr(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -> pd.DataFrame:
+
+def return_ship_attr(df: pd.DataFrame, id_type: Literal["MMSI", "IMO"], id: int) -> pd.DataFrame:
     """
     Given the id of a ship, return the time-invariant attribute in the dataframe
     :param df: Data frame to subset on
@@ -66,29 +71,52 @@ def return_ship_attr(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -
     :return:
     """
     # columns required
-    cols: List[str] = ['# Timestamp','Type of mobile','MMSI','IMO','Data source type',
-                       'Callsign','Name','Ship type','Width','Length','Type of position fixing device','A','B','C','D']
+    cols: List[str] = [
+        "# Timestamp",
+        "Type of mobile",
+        "MMSI",
+        "IMO",
+        "Data source type",
+        "Callsign",
+        "Name",
+        "Ship type",
+        "Width",
+        "Length",
+        "Type of position fixing device",
+        "A",
+        "B",
+        "C",
+        "D",
+    ]
     # attribute required
-    attr: List[str] = ['Type of mobile', 'MMSI', 'IMO', 'Callsign', 'Name', 'Ship type', 'Width', 'Length',
-                       'Type of position fixing device']
+    attr: List[str] = [
+        "Type of mobile",
+        "MMSI",
+        "IMO",
+        "Callsign",
+        "Name",
+        "Ship type",
+        "Width",
+        "Length",
+        "Type of position fixing device",
+    ]
 
     # filter the dataframe in both dimension
-    df_ship = df.loc[df[id_type] ==  id,attr].drop_duplicates()
+    df_ship = df.loc[df[id_type] == id, attr].drop_duplicates()
 
     if df_ship.shape[0] == 0:
-        raise KeyError(f'No records found for the ship with {id_type}: {id}')
+        raise KeyError(f"No records found for the ship with {id_type}: {id}")
     elif df_ship.shape[0] > 1:
-        warnings.warn(f'More than 1 unique record found for the ship with {id_type}: {id}')
+        warnings.warn(f"More than 1 unique record found for the ship with {id_type}: {id}")
 
-        df_ship = df.loc[df[id_type] ==  id,cols]\
-                    .sort_values('# Timestamp')\
-                    .drop_duplicates(keep = 'first')
+        df_ship = df.loc[df[id_type] == id, cols].sort_values("# Timestamp").drop_duplicates(keep="first")
     else:
         # only one unique record on the expectedly time-invariant attribute
         pass
     return df_ship.reset_index(drop=True)
 
-def return_ship_type_attr(df_path: str,ship_type: str, chunksize: int = None) -> pd.DataFrame:
+
+def return_ship_type_attr(df_path: str, ship_type: str, chunksize: int = None) -> pd.DataFrame:
     """
     Given the id of a ship, return the time-invariant attribute in the dataframe
     :param df: Data frame to subset on
@@ -98,25 +126,34 @@ def return_ship_type_attr(df_path: str,ship_type: str, chunksize: int = None) ->
     """
 
     # attribute required
-    attr: List[str] = ['Type of mobile', 'MMSI', 'IMO', 'Callsign', 'Name', 'Ship type', 'Width', 'Length',
-                       'Type of position fixing device']
+    attr: List[str] = [
+        "Type of mobile",
+        "MMSI",
+        "IMO",
+        "Callsign",
+        "Name",
+        "Ship type",
+        "Width",
+        "Length",
+        "Type of position fixing device",
+    ]
 
     # instantiate empty list to store chunks of df
     list_df = []
 
     if chunksize:
-        df_iter = pd.read_csv(df_path, chunksize = chunksize)
+        df_iter = pd.read_csv(df_path, chunksize=chunksize)
     else:
         df_iter = [pd.read_csv(df_path)]
 
-    for iter, df in enumerate(df_iter): 
+    for iter, df in enumerate(df_iter):
         # filter the dataframe in both dimension
-        df_ship = df.loc[df['Ship type'] ==  ship_type,attr].drop_duplicates()
+        df_ship = df.loc[df["Ship type"] == ship_type, attr].drop_duplicates()
 
         if df_ship.shape[0] == 0:
-            warnings.warn(f'No vessel of type {ship_type} in {iter}-th chunk of the df.')
-        elif len(df_ship['MMSI'].unique()) != df_ship.shape[0]:
-            warnings.warn(f'One or more vessel has its attribute changed')
+            warnings.warn(f"No vessel of type {ship_type} in {iter}-th chunk of the df.")
+        elif len(df_ship["MMSI"].unique()) != df_ship.shape[0]:
+            warnings.warn(f"One or more vessel has its attribute changed")
         else:
             # only one unique record on the expectedly time-invariant attribute
             pass
@@ -125,15 +162,16 @@ def return_ship_type_attr(df_path: str,ship_type: str, chunksize: int = None) ->
 
     df_concat = pd.concat(list_df).drop_duplicates().reset_index(drop=True)
 
-    if len(df_concat['MMSI'].unique()) != df_concat.shape[0]:
-        warnings.warn(f'One or more vesselhas its attribute changed')
+    if len(df_concat["MMSI"].unique()) != df_concat.shape[0]:
+        warnings.warn(f"One or more vesselhas its attribute changed")
     else:
         # only one unique record on the expectedly time-invariant attribute
         pass
 
     return df_concat
 
-def return_ship_attr_time_variant(df: pd.DataFrame, id_type: Literal['MMSI','IMO'],id: int) -> pd.DataFrame:
+
+def return_ship_attr_time_variant(df: pd.DataFrame, id_type: Literal["MMSI", "IMO"], id: int) -> pd.DataFrame:
     """
     Given the id of a ship, return the attributes that are less likely to change over time
     :param df: Data frame to subset on
@@ -142,30 +180,45 @@ def return_ship_attr_time_variant(df: pd.DataFrame, id_type: Literal['MMSI','IMO
     :return:
     """
     # columns required
-    cols: List[str] = ['# Timestamp','Type of mobile','Data source type']
+    cols: List[str] = ["# Timestamp", "Type of mobile", "Data source type"]
     # attribute required
-    attr: List[str] = ['MMSI', 'IMO', 'Navigational status','Heading','Destination','ETA','Cargo type',
-                       'A', 'B','C', 'D']
+    attr: List[str] = [
+        "MMSI",
+        "IMO",
+        "Navigational status",
+        "Heading",
+        "Destination",
+        "ETA",
+        "Cargo type",
+        "A",
+        "B",
+        "C",
+        "D",
+    ]
 
     # subset the
 
     # filter the dataframe in both dimension
-    df_ship = df.loc[df[id_type] ==  id,attr].drop_duplicates()
+    df_ship = df.loc[df[id_type] == id, attr].drop_duplicates()
 
     if df_ship.shape[0] == 0:
-        raise KeyError(f'No records found for the ship with {id_type}: {id}')
+        raise KeyError(f"No records found for the ship with {id_type}: {id}")
     elif df_ship.shape[0] > 1:
 
-        df_ship = df[cols].merge(df_ship,how='right',left_index=True, right_index = True)\
-                    .sort_values('# Timestamp')\
-                    .drop_duplicates(keep = 'first')
+        df_ship = (
+            df[cols]
+            .merge(df_ship, how="right", left_index=True, right_index=True)
+            .sort_values("# Timestamp")
+            .drop_duplicates(keep="first")
+        )
     else:
         # only one unique record on the expectedly time-invariant attribute
         pass
 
     return df_ship.reset_index(drop=True)
 
-def return_ship_geo_attr(df: pd.DataFrame, id_type: Literal['MMSI', 'IMO'], id: int) -> gpd.GeoDataFrame:
+
+def return_ship_geo_attr(df: pd.DataFrame, id_type: Literal["MMSI", "IMO"], id: int) -> gpd.GeoDataFrame:
     """
     Given the id of a ship, return the attributes that are usually time-variant.
     :param df: Data frame to subset on
@@ -174,40 +227,40 @@ def return_ship_geo_attr(df: pd.DataFrame, id_type: Literal['MMSI', 'IMO'], id: 
     :return: gpd.GeoDataFrame
     """
     # columns required
-    cols: List[str] = ['# Timestamp', 'Latitude', 'Longitude', 'ROT', 'SOG', 'COG', 'Draught', 'Data source type']
+    cols: List[str] = ["# Timestamp", "Latitude", "Longitude", "ROT", "SOG", "COG", "Draught", "Data source type"]
 
     # filter the dataframe in both dimension
-    df_ship = df.loc[df[id_type] == id, cols].drop_duplicates()\
-                .sort_values('# Timestamp')\
-                .reset_index(drop = True)
+    df_ship = df.loc[df[id_type] == id, cols].drop_duplicates().sort_values("# Timestamp").reset_index(drop=True)
 
     if df_ship.shape[0] == 0:
-        raise KeyError(f'No records found for the ship with {id_type}: {id}')
+        raise KeyError(f"No records found for the ship with {id_type}: {id}")
 
     else:
 
-        gdf = gpd.GeoDataFrame(df_ship, geometry = gpd.points_from_xy(
-                                    x = df_ship['Longitude'],
-                                    y = df_ship['Latitude']))\
-                .drop(columns = ['Longitude','Latitude'])\
-                .set_crs(epsg=4326)
+        gdf = (
+            gpd.GeoDataFrame(df_ship, geometry=gpd.points_from_xy(x=df_ship["Longitude"], y=df_ship["Latitude"]))
+            .drop(columns=["Longitude", "Latitude"])
+            .set_crs(epsg=4326)
+        )
 
     return gdf
 
-def get_ship_route(path:str, id_type: Literal['MMSI', 'IMO'], id: int, chunk_size:int = 5000) \
-        -> Tuple[Union[Dict, gpd.GeoDataFrame]]:
 
-    df_iter = pd.read_csv(path, chunksize = chunk_size, parse_dates=["# Timestamp"])
+def get_ship_route(
+    path: str, id_type: Literal["MMSI", "IMO"], id: int, chunk_size: int = 5000
+) -> Tuple[Union[Dict, gpd.GeoDataFrame]]:
+
+    df_iter = pd.read_csv(path, chunksize=chunk_size, parse_dates=["# Timestamp"])
 
     # instantiate empty result
-    dfs_attr:List[pd.DataFrame] = []
-    dfs_attr_tv:List[pd.DataFrame] = []
+    dfs_attr: List[pd.DataFrame] = []
+    dfs_attr_tv: List[pd.DataFrame] = []
     gdfs: List[gpd.GeoDataFrame] = []
 
     for df in df_iter:
-        if id in list(df[id_type].astype('int64')):
+        if id in list(df[id_type].astype("int64")):
             try:
-                dfs_attr.append(return_ship_attr(df=df,id_type=id_type,id=id))
+                dfs_attr.append(return_ship_attr(df=df, id_type=id_type, id=id))
                 dfs_attr_tv.append(return_ship_attr_time_variant(df=df, id_type=id_type, id=id))
                 gdfs.append(return_ship_geo_attr(df=df, id_type=id_type, id=id))
             except:
@@ -215,18 +268,18 @@ def get_ship_route(path:str, id_type: Literal['MMSI', 'IMO'], id: int, chunk_siz
         else:
             continue
 
-
     df_attr: pd.DataFrame = pd.concat(dfs_attr).drop_duplicates().reset_index(drop=True)
     df_attr_tv: pd.DataFrame = pd.concat(dfs_attr_tv).drop_duplicates().reset_index(drop=True)
 
-    gdf:gpd.GeoDataFrame = pd.concat(gdfs).reset_index(drop= True)
+    gdf: gpd.GeoDataFrame = pd.concat(gdfs).reset_index(drop=True)
 
     if gdf.crs is None:
-        warnings.warn('GeoDataFrame with no crs assigned.')
+        warnings.warn("GeoDataFrame with no crs assigned.")
 
     return df_attr, df_attr_tv, gdf
 
-def return_line_from_points(gdf:gpd.GeoDataFrame)->LineString:
+
+def return_line_from_points(gdf: gpd.GeoDataFrame) -> LineString:
     gdf["# Timestamp"] = gpd.pd.to_datetime(gdf["# Timestamp"])
 
     # Sort by timestamp
@@ -242,7 +295,8 @@ def return_line_from_points(gdf:gpd.GeoDataFrame)->LineString:
 
     return line
 
-def extract_unique_attribute(ser: pd.DataFrame, attr_name: str,to_replace_na: list = ["Undefined"]):
+
+def extract_unique_attribute(ser: pd.DataFrame, attr_name: str, to_replace_na: list = ["Undefined"]):
     """Check if a series contain one unique value only"""
     values: np.array = ser[attr_name].replace(to_replace_na, pd.NA).dropna().unique()
     if len(values) > 1:
@@ -252,5 +306,6 @@ def extract_unique_attribute(ser: pd.DataFrame, attr_name: str,to_replace_na: li
     elif len(values) == 1:
         return values[0]
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     pass
